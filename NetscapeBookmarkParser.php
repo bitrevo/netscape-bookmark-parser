@@ -172,7 +172,6 @@ class NetscapeBookmarkParser
         }
         // ksort($this->items);
         // return $this->items;
-        var_dump($root);
         return $root;
     }
 
