@@ -1,7 +1,7 @@
 # netscape-bookmark-parser
 [![license](https://img.shields.io/github/license/kafene/netscape-bookmark-parser.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-[![](https://img.shields.io/packagist/v/kafene/netscape-bookmark-parser.svg?style=plastic)](https://packagist.org/packages/kafene/netscape-bookmark-parser)
+This repo is forked from [kafene/netscape-bookmark-parser](https://github.com/kafene/netscape-bookmark-parser) and added nested output support and OO data object.
 
 ## About
 This library provides a generic `NetscapeBookmarkParser` class that is able
@@ -40,36 +40,53 @@ var_dump($bookmarks);
 
 Output:
 ```
-array(2) {
-  [0] =>
-  array(6) {
-    'tags' =>
-    string(14) "private secret"
-    'uri' =>
-    string(19) "https://private.tld"
-    'title' =>
-    string(12) "Secret stuff"
-    'note' =>
-    string(52) "Super-secret stuff you're not supposed to know about"
-    'time' =>
-    int(971175336)
-    'pub' =>
-    int(0)
-  }
-  [1] =>
-  array(6) {
-    'tags' =>
-    string(18) "public hello world"
-    'uri' =>
-    string(17) "http://public.tld"
-    'title' =>
-    string(12) "Public stuff"
-    'note' =>
-    string(0) ""
-    'time' =>
-    int(1456433748)
-    'pub' =>
-    int(1)
+object(Folder)#273 (3) {
+  ["title"]=>
+  string(4) "Root"
+  ["parent"]=>
+  NULL
+  ["content"]=>
+  array(1) {
+    [0]=>
+    object(Folder)#279 (3) {
+      ["title"]=>
+      string(13) "Bookmarks bar"
+      ["parent"]=>
+      *RECURSION*
+      ["content"]=>
+      array(8) {
+        [0]=>
+        object(Page)#277 (6) {
+          ["uri"]=>
+          string(25) "https://private.tld"
+          ["title"]=>
+          string(9) "Secret stuff"
+          ["note"]=>
+          string(0) "Super-secret stuff you're not supposed to know about"
+          ["tags"]=>
+          string(13) "bookmarks bar"
+          ["time"]=>
+          int(1563348673)
+          ["pub"]=>
+          string(1) "0"
+        }
+        [0]=>
+        object(Page)#277 (6) {
+          ["uri"]=>
+          string(25) "http://public.tld"
+          ["title"]=>
+          string(9) "Public stuff"
+          ["note"]=>
+          string(0) ""
+          ["tags"]=>
+          string(13) "bookmarks bar"
+          ["time"]=>
+          int(1563348673)
+          ["pub"]=>
+          string(1) "0"
+        }
+      }
+    }
   }
 }
 ```

@@ -82,41 +82,58 @@ class NetscapeBookmarkParser
         $next = false;
         $folderTags = array();
 
+        // root folder for all bookmarks
+        $root = new \Folder('Root');
+        $currentFolder = $root;
+
         $lines = explode("\n", $this->sanitizeString($bookmarkString));
 
         foreach ($lines as $line_no => $line) {
+            $page = new \Page();
+
             if (preg_match('/^<h\d.*>(.*)<\/h\d>/i', $line, $m1)) {
                 // a header is matched:
                 // - links may be grouped in a (sub-)folder
                 // - append the header's content to the folder tags
                 $folderTags[] = strtolower($m1[1]);
+
+                // new folder object and update current pointer
+                $folder = new \Folder($m1[1]);
+                $folder->setParent($currentFolder);
+                $currentFolder->addContent($folder);
+                $currentFolder = $folder;
+
                 continue;
 
             } elseif (preg_match('/^<\/DL>/i', $line)) {
                 // </DL> matched: stop using header value
                 array_pop($folderTags);
+
+                // update current pointer to upper level
+                $currentFolder = $currentFolder->getParent();
+
                 continue;
             }
 
             if (preg_match('/<a/i', $line, $m2)) {
                 if (preg_match('/href="(.*?)"/i', $line, $m3)) {
-                    $this->items[$i]['uri'] = $m3[1];
+                    $page->uri = $m3[1];
                 } else {
-                    $this->items[$i]['uri'] = '';
+                    $page->uri = '';
                 }
 
                 if (preg_match('/<a.*>(.*?)<\/a>/i', $line, $m4)) {
-                    $this->items[$i]['title'] = $m4[1];
+                    $page->title = $m4[1];
                 } else {
-                    $this->items[$i]['title'] = 'untitled';
+                    $page->title = 'untitled';
                 }
 
                 if (preg_match('/note="(.*?)"<\/a>/i', $line, $m5)) {
-                    $this->items[$i]['note'] = $m5[1];
+                    $page->note = $m5[1];
                 } elseif (preg_match('/<dd>(.*?)$/i', $line, $m6)) {
-                    $this->items[$i]['note'] = str_replace('<br>', "\n", $m6[1]);
+                    $page->note = str_replace('<br>', "\n", $m6[1]);
                 } else {
-                    $this->items[$i]['note'] = '';
+                    $page->note = '';
                 }
 
                 $tags = array();
@@ -133,27 +150,30 @@ class NetscapeBookmarkParser
                         explode(' ', strtr($m7[2], ',', ' '))
                     );
                 }
-                $this->items[$i]['tags'] = implode(' ', $tags);
+                $page->tags = implode(' ', $tags);
 
                 if (preg_match('/add_date="(.*?)"/i', $line, $m8)) {
-                    $this->items[$i]['time'] = $this->parseDate($m8[1]);
+                    $page->time = $this->parseDate($m8[1]);
                 } else {
-                    $this->items[$i]['time'] = time();
+                    $page->time = time();
                 }
 
                 if (preg_match('/(public|published|pub)="(.*?)"/i', $line, $m9)) {
-                    $this->items[$i]['pub'] = $this->parseBoolean($m9[2], false) ? 1 : 0;
+                    $page->pub = $this->parseBoolean($m9[2], false) ? 1 : 0;
                 } elseif (preg_match('/(private|shared)="(.*?)"/i', $line, $m10)) {
-                    $this->items[$i]['pub'] = $this->parseBoolean($m10[2], true) ? 0 : 1;
+                    $page->pub = $this->parseBoolean($m10[2], true) ? 0 : 1;
                 } else {
-                    $this->items[$i]['pub'] = $this->defaultPub;
+                    $page->pub = $this->defaultPub;
                 }
 
-                $i++;
+                // $i++;
+                $currentFolder->addContent($page);
             }
         }
-        ksort($this->items);
-        return $this->items;
+        // ksort($this->items);
+        // return $this->items;
+        var_dump($root);
+        return $root;
     }
 
     /**
@@ -255,3 +275,46 @@ class NetscapeBookmarkParser
         return $sanitized;
     }
 }
+
+
+
+class Folder
+{
+    public $title;
+    public $parent;
+    public $content;
+
+    public function __construct($title='Default')
+    {
+        $this->content = [];
+        $this->parent = null;
+        $this->title = $title;
+    }
+
+    public function addContent($object)
+    {
+        $this->content[] = $object;
+    }
+
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+    }
+
+    public function getParent()
+    {
+        return $this->parent;
+    }
+}
+
+
+class Page
+{
+    public $uri;
+    public $title;
+    public $note;
+    public $tags;
+    public $time;
+    public $pub;
+}
+
