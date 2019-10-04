@@ -99,7 +99,7 @@ class NetscapeBookmarkParser
 
                 // new folder object and update current pointer
                 $folder = new \Folder($m1[1]);
-                $folder->setParent($currentFolder);
+                // $folder->setParent($currentFolder);
                 $currentFolder->addContent($folder);
                 $currentFolder = $folder;
 
@@ -119,11 +119,11 @@ class NetscapeBookmarkParser
                 if (preg_match('/href="(.*?)"/i', $line, $m3)) {
                     $page->uri = $m3[1];
                 } else {
-                    $page->uri = '';
+                    $page->uri = null;
                 }
 
                 if (preg_match('/<a.*>(.*?)<\/a>/i', $line, $m4)) {
-                    $page->title = $m4[1];
+                    $page->title = html_entity_decode($m4[1], ENT_QUOTES | ENT_XML1, 'UTF-8');
                 } else {
                     $page->title = 'untitled';
                 }
@@ -133,7 +133,13 @@ class NetscapeBookmarkParser
                 } elseif (preg_match('/<dd>(.*?)$/i', $line, $m6)) {
                     $page->note = str_replace('<br>', "\n", $m6[1]);
                 } else {
-                    $page->note = '';
+                    $page->note = null;
+                }
+
+                if (preg_match('/icon="(.*?)"/i', $line, $m7)) {
+                    $page->icon = $m7[1];
+                } else {
+                    $page->icon = null;
                 }
 
                 $tags = array();
@@ -277,10 +283,30 @@ class NetscapeBookmarkParser
 
 
 
-class Folder
+abstract class ContentItem
+{
+    public $parent;
+
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+    }
+
+    public function isFolder()
+    {
+        return (get_class($this) === 'Folder') ? true : false;
+    }
+
+    public function isPage()
+    {
+        return (get_class($this) === 'Page') ? true : false;
+    }
+}
+
+
+class Folder extends ContentItem
 {
     public $title;
-    public $parent;
     public $content;
 
     public function __construct($title='Default')
@@ -292,22 +318,30 @@ class Folder
 
     public function addContent($object)
     {
+        $object->setParent($this);
         $this->content[] = $object;
-    }
-
-    public function setParent($parent)
-    {
-        $this->parent = $parent;
     }
 
     public function getParent()
     {
         return $this->parent;
     }
+
+    public function flattenContent()
+    {
+        $arr = [];
+        foreach ($this->content as $object) {
+            $arr[] = $object;
+            if (get_class($object) === 'Folder') {
+                $arr = array_merge($arr, $object->flattenContent());
+            }
+        }
+        return $arr;
+    }
 }
 
 
-class Page
+class Page extends ContentItem
 {
     public $uri;
     public $title;
